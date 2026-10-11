@@ -160,27 +160,70 @@ end
 
 ####################################################################################################################
 function main()
-    seed = 6767
-    Random.seed!(seed) #losowe ale zawsze takie same póki jest takie same ziarno
+    ### ZAD 1
+    # seed = 6767
+    # Random.seed!(seed) #losowe ale zawsze takie same póki jest takie same ziarno
+    # L_x = 50
+    # L_y = 50
+    # L_z = 3
+    # t = 1.0
+    # W = 8.0
+    # PBC = true
 
-    L_x = 100
-    L_y = 3
-    L_z = 3
-    t = 1.0
-    W = 8.0
-    PBC = false
-
-    H1 = gen_H_anderson_1D(L_x, t, W, PBC)
+    # # H1 = gen_H_anderson_1D(L_x, t, W, PBC)
     # H2 = gen_H_anderson_2D(L_x, L_y, t, W, PBC)
-    # H3 = gen_H_anderson_3D(L_x, L_y, L_z, t, W, PBC)
-    save_data(H1, "Hamiltonian_1D", W, PBC; seed, L_x)
+    # # H3 = gen_H_anderson_3D(L_x, L_y, L_z, t, W, PBC)
+    # # save_data(H2, "Hamiltonian_2D", W, PBC; seed, L_x, L_y)
 
-    ED = eigen(Symmetric(H1))
-    eigenvalues = ED.values
-    eigenvectors = ED.vectors
-    save_data(eigenvalues, "eigenvalues_1D", W, PBC; seed, L_x)
-    save_data(eigenvectors, "eigenvectors_1D", W, PBC; seed, L_x)
+    # ED = eigen(Symmetric(H2))
+    # eigenvalues = ED.values
+    # eigenvectors = ED.vectors
+    # save_data(eigenvalues, "eigenvalues_2D", W, PBC; seed, L_x, L_y)
+    # save_data(eigenvectors, "eigenvectors_2D", W, PBC; seed, L_x, L_y)
 
-end
+    
+    ### ZAD 2
+    L_x = 1000
+    t = 1.0
+    W = 0.5
+    PBC = true
+    R = 100
+
+    seed_start = time_ns()
+    eigenvalues_R = zeros(Float64, N, R)
+    IPR_R = zeros(Float64, N, R)
+
+    # Pętla po realizacjach nieporządku
+    for r in 1:R
+        # println("Realizacja $r / $R")
+
+        seed = seed_start + (r - 1)
+        Random.seed!(seed)
+
+        H1 = gen_H_anderson_1D(L_x, t, W, PBC)
+        ED = eigen(Symmetric(H1))
+
+        eigenvalues = ED.values
+        eigenvectors = ED.vectors
+
+        # IPR dla wszystkich wektorów własnych, każda kolumna macierzy to jeden wektor własny
+        IPR = vec(sum(abs2.(eigenvectors).^2, dims=1)) # dims -> oznacza sumowanie po wierszach, osobno dla każdej kolumny
+
+        eigenvalues_R[:, r] = eigenvalues 
+        IPR_R[:, r] = IPR
+        IPR_od_E = hcat(eigenvalues, IPR)
+
+        #save_data(IPR_od_E, "IPR_1D_R$(R)_r$(r)",W, PBC; seed, L_x)
+    end
+
+    # Uśrednianie po realizacjach
+    eigenvalues_mean = vec(sum(eigenvalues_R, dims=2)) / R
+    IPR_mean = vec(sum(IPR_R, dims=2)) / R
+
+    # Zapis średnich: energia, IPR
+    IPR_mean_od_E = hcat(eigenvalues_mean, IPR_mean)
+    save_data(IPR_mean_od_E, "IPR_mean_1D_R$(R)",W, PBC; seed=seed_start, L_x)
+
+    end
 
 main()
