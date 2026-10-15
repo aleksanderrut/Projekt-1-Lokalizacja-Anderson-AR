@@ -161,69 +161,169 @@ end
 ####################################################################################################################
 function main()
     ### ZAD 1
-    # seed = 6767
+    # seed = 1234
     # Random.seed!(seed) #losowe ale zawsze takie same póki jest takie same ziarno
-    # L_x = 50
+    # L_x = 2500
     # L_y = 50
     # L_z = 3
     # t = 1.0
-    # W = 8.0
-    # PBC = true
+    # W = 0.5
+    # PBC = false
 
-    # # H1 = gen_H_anderson_1D(L_x, t, W, PBC)
-    # H2 = gen_H_anderson_2D(L_x, L_y, t, W, PBC)
+    # H1 = gen_H_anderson_1D(L_x, t, W, PBC)
+    # # H2 = gen_H_anderson_2D(L_x, L_y, t, W, PBC)
     # # H3 = gen_H_anderson_3D(L_x, L_y, L_z, t, W, PBC)
     # # save_data(H2, "Hamiltonian_2D", W, PBC; seed, L_x, L_y)
 
-    # ED = eigen(Symmetric(H2))
+    # ED = eigen(Symmetric(H1))
     # eigenvalues = ED.values
     # eigenvectors = ED.vectors
-    # save_data(eigenvalues, "eigenvalues_2D", W, PBC; seed, L_x, L_y)
-    # save_data(eigenvectors, "eigenvectors_2D", W, PBC; seed, L_x, L_y)
+    # save_data(eigenvalues, "eigenvalues_1D", W, PBC; seed, L_x)
+    # save_data(eigenvectors, "eigenvectors_1D", W, PBC; seed, L_x)
+
+
+#     ### ZAD 2
+#     L_x = 1000
+#     t = 1.0
+#     W = 8.0
+#     PBC = true
+#     R = 500
+
+#     rd = RandomDevice()
+#     eigenvalues_R = zeros(Float64, L_x, R)
+#     IPR_R = zeros(Float64, L_x, R)
+
+#     # Pętla po realizacjach nieporządku
+#     for r in 1:R
+#         # println("Realizacja $r / $R")
+
+#         seed = rand(rd, UInt64)
+#         Random.seed!(seed)
+
+#         H1 = gen_H_anderson_1D(L_x, t, W, PBC)
+#         ED = eigen(Symmetric(H1))
+
+#         eigenvalues = ED.values
+#         eigenvectors = ED.vectors
+
+#         # IPR dla wszystkich wektorów własnych, każda kolumna macierzy to jeden wektor własny
+#         IPR = vec(sum(abs2.(eigenvectors).^2, dims=1)) # dims -> oznacza sumowanie po wierszach, osobno dla każdej kolumny
+
+#         eigenvalues_R[:, r] = eigenvalues 
+#         IPR_R[:, r] = IPR
+#     end
+
+#     # Uśrednianie po realizacjach
+#     eigenvalues_mean = vec(sum(eigenvalues_R, dims=2)) / R # dims=2 oznacza sumowanie po każdej kolumie, osbno dla każdego wiersza 
+#     IPR_mean = vec(sum(IPR_R, dims=2)) / R
+
+#     # Zapis średnich: energia, IPR
+#     #IPR_mean_od_E = hcat(eigenvalues_mean, IPR_mean)
+#     #save_data(IPR_mean_od_E, "IPR_mean_1D_R$(R)",W, PBC; L_x)
+
+#     # Binowanie
+#     delta_E = 0.1
+#     E_min = -6
+#     E_max = 6
+#     N_binow = round(Int, (E_max - E_min) / delta_E)
+
+#     IPR_suma = zeros(N_binow)
+#     liczba_stanow = zeros(Int, N_binow)
+
+#     # Przypisywanie IPR do odpowiednich koszyków ze względu na średnią wartość enrgi przypisaną do IPR'ów
+#     for i in eachindex(eigenvalues_mean)
+#         E = eigenvalues_mean[i]
+#         IPR = IPR_mean[i]
+#         numer_binu = floor(Int, (E - E_min) / delta_E) + 1
+#         IPR_suma[numer_binu] += IPR
+#         liczba_stanow[numer_binu] += 1
+#     end
+
+#     energie_binow = zeros(N_binow)
+#     IPR_bin = zeros(N_binow)
+#     for i in 1:N_binow
+#         energie_binow[i] = E_min + (i - 1/2) * delta_E # śreodek koszyka
+#         if liczba_stanow[i] > 0
+#             IPR_bin[i] = IPR_suma[i] / liczba_stanow[i]
+#         end
+#     end
+
+#     IPR_data = hcat( energie_binow, IPR_bin, liczba_stanow)
+#     save_data(IPR_data, "IPR_1D_R$(R)", W, PBC; L_x)
 
     
-    ### ZAD 2
-    L_x = 1000
+    ### ZAD 3
+    L_x = 10
+    L_y = 10
+    L_z = 10
     t = 1.0
-    W = 0.5
     PBC = true
-    R = 100
+    R = 50
 
-    seed_start = time_ns()
-    eigenvalues_R = zeros(Float64, N, R)
-    IPR_R = zeros(Float64, N, R)
+    W_values = 1.0:0.5:20.0
+    N_W = length(W_values)
 
-    # Pętla po realizacjach nieporządku
-    for r in 1:R
-        # println("Realizacja $r / $R")
+    N = L_x * L_y * L_z
+    delta_E = 0.1
+    E_min = -16.0
+    E_max = 16.0
+    N_binow = round(Int, (E_max - E_min) / delta_E)
 
-        seed = seed_start + (r - 1)
-        Random.seed!(seed)
-
-        H1 = gen_H_anderson_1D(L_x, t, W, PBC)
-        ED = eigen(Symmetric(H1))
-
-        eigenvalues = ED.values
-        eigenvectors = ED.vectors
-
-        # IPR dla wszystkich wektorów własnych, każda kolumna macierzy to jeden wektor własny
-        IPR = vec(sum(abs2.(eigenvectors).^2, dims=1)) # dims -> oznacza sumowanie po wierszach, osobno dla każdej kolumny
-
-        eigenvalues_R[:, r] = eigenvalues 
-        IPR_R[:, r] = IPR
-        IPR_od_E = hcat(eigenvalues, IPR)
-
-        #save_data(IPR_od_E, "IPR_1D_R$(R)_r$(r)",W, PBC; seed, L_x)
+    energie_binow = zeros(N_binow)
+    for i in 1:N_binow
+        energie_binow[i] = E_min + (i - 0.5) * delta_E
     end
 
-    # Uśrednianie po realizacjach
-    eigenvalues_mean = vec(sum(eigenvalues_R, dims=2)) / R
-    IPR_mean = vec(sum(IPR_R, dims=2)) / R
+    # Wiersze -> W
+    # Kolumny -> biny energetyczne
+    IPR_matrix = fill(NaN, N_W, N_binow)
+    liczba_stanow_matrix = zeros(Int, N_W, N_binow)
 
-    # Zapis średnich: energia, IPR
-    IPR_mean_od_E = hcat(eigenvalues_mean, IPR_mean)
-    save_data(IPR_mean_od_E, "IPR_mean_1D_R$(R)",W, PBC; seed=seed_start, L_x)
+    rd = RandomDevice()
 
+    for (w_idx, W) in enumerate(W_values)
+        eigenvalues_R = zeros(Float64, N, R)
+        IPR_R = zeros(Float64, N, R)
+        for r in 1:R
+            seed = rand(rd, UInt64)
+            Random.seed!(seed)
+            H3 = gen_H_anderson_3D(L_x, L_y, L_z, t, W, PBC)
+            ED = eigen(Symmetric(H3))
+            eigenvalues = ED.values
+            eigenvectors = ED.vectors
+
+            # IPR dla wszystkich wektorów własnych
+            IPR = vec(sum(abs2.(eigenvectors).^2, dims=1))
+            eigenvalues_R[:, r] = eigenvalues
+            IPR_R[:, r] = IPR
+        end
+
+        eigenvalues_mean = vec(sum(eigenvalues_R, dims=2)) / R
+        IPR_mean = vec(sum(IPR_R, dims=2)) / R
+
+        IPR_suma = zeros(N_binow)
+        liczba_stanow = zeros(Int, N_binow)
+
+        for i in eachindex(eigenvalues_mean)
+            E = eigenvalues_mean[i]
+            IPR = IPR_mean[i]
+            numer_binu = floor(Int, (E - E_min) / delta_E) + 1
+            IPR_suma[numer_binu] += IPR
+            liczba_stanow[numer_binu] += 1
+        end
+
+        for i in 1:N_binow
+            if liczba_stanow[i] > 0
+                IPR_matrix[w_idx, i] = IPR_suma[i] / liczba_stanow[i]
+            end
+            liczba_stanow_matrix[w_idx, i] = liczba_stanow[i]
+        end
     end
+
+    save_data(IPR_matrix, "IPR_matrix_3D_R$(R)", 0, PBC; L_x, L_y, L_z)
+
+end
+
+
 
 main()

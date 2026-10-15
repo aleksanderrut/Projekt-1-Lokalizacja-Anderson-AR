@@ -8,15 +8,15 @@ folder = Path(
     r"C:\Users\aleks\Desktop\PWR\Kwantowe układy wielu cząstek z elementami kwantowej fizyki statystycznej\Projekt 1 Lokalizacja Andersona\data"
 )
 
-filename = "eigenvectors_1D_W0.5_PBCfalse_Lx100_seed1234.data"
+filename = "eigenvectors_1D_W8.0_PBCtrue_Lx2500_seed6767.data"
 filepath = folder / filename
 
-states = [1, 50, 100]
+states = [1, 1250, 2500]
 
 energies = {
-    1: 2.0799,
-    50: -0.0196,
-    100: -2.0507
+    2500: 5.422980411509873,
+    1250: -0.015957223415923313,
+    1: -5.386927567380449
 }
 
 eigenvectors = np.loadtxt(filepath)

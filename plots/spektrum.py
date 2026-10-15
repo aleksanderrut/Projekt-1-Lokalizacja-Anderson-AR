@@ -8,7 +8,7 @@ folder = Path(
     r"C:\Users\aleks\Desktop\PWR\Kwantowe układy wielu cząstek z elementami kwantowej fizyki statystycznej\Projekt 1 Lokalizacja Andersona\data"
 )
 
-filename = "eigenvalues_2D_W8.0_PBCtrue_Lx50_Ly50_seed6767.data"
+filename = "eigenvalues_1D_W8.0_PBCtrue_Lx2500_seed6767.data"
 filepath = folder / filename
 
 eigenvalues = np.loadtxt(filepath)
@@ -51,9 +51,9 @@ plt.scatter(n, eigenvalues, s=20)
 
 # dodatkowe poziomy energii i odpowiadające im numery wartości własnych
 energy_levels = [
-    (-6.253386867593099, 1),
-    ( 0.009797655580650502, 1250),
-    (6.225288362603912, 2500)
+    (-5.386927567380449, 1),
+    (-0.015957223415923313, 1250),
+    (5.422980411509873, 2500)
 ]
 
 for E, number in energy_levels:
