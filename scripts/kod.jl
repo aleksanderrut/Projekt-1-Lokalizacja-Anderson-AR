@@ -258,7 +258,7 @@ function main()
     L_z = 10
     t = 1.0
     PBC = true
-    R = 50
+    R = 70
 
     W_values = 1.0:0.5:20.0
     N_W = length(W_values)

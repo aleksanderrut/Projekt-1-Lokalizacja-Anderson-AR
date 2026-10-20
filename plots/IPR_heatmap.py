@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 # ============================================================
 
 plik = Path(
-    r"C:\Users\aleks\Desktop\PWR\Kwantowe układy wielu cząstek z elementami kwantowej fizyki statystycznej\Projekt 1 Lokalizacja Andersona\data\IPR_matrix_3D_R50_W0_PBCtrue_Lx8_Ly8_Lz8.data"
+    r"C:\Users\aleks\Desktop\PWR\Kwantowe układy wielu cząstek z elementami kwantowej fizyki statystycznej\Projekt 1 Lokalizacja Andersona\data\IPR_matrix_3D_R70_W0_PBCtrue_Lx10_Ly10_Lz10.data"
 )
 
 # Zakresy osi (None = automatyczny)
