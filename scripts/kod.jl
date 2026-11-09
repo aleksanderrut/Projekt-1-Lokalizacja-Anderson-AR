@@ -134,6 +134,35 @@ function gen_H_anderson_3D(Lx, Ly, Lz, t, W, PBC::Bool)
     return H
 end
 
+# Liczenie wspołczynników Lapunowa dla całego wektora długości łańcucha
+function gamma_rekurencja(w, E, t, L_values)
+    k = acos(complex(-E / (2*t)))
+    psi0 = exp(im * k)
+    psi1 = 1.0 + 0im
+
+    suma_log = 0.0
+    gamma = zeros(length(L_values))
+    indeks = 1
+    for l in 1:maximum(L_values)
+        # Rekurencja
+        psi2 = (w[l] - E)/t * psi1 - psi0
+        norma = sqrt(abs2(psi2) + abs2(psi1))
+        suma_log += log(norma)
+
+        psi0 = psi1 / norma
+        psi1 = psi2 / norma
+
+        # Zapis gamma dla wybranych długości L
+        if l == L_values[indeks]
+            gamma[indeks] = suma_log / l
+            indeks += 1
+        end
+    end
+
+    return gamma
+end
+
+
 # Zapis do pliku .data
 function save_data(data, filename, W, PBC; seed=nothing, L_x=nothing, L_y=nothing, L_z=nothing)
     folder = raw"C:\Users\aleks\Desktop\PWR\Kwantowe układy wielu cząstek z elementami kwantowej fizyki statystycznej\Projekt 1 Lokalizacja Andersona\data"
@@ -160,26 +189,26 @@ end
 
 ####################################################################################################################
 function main()
-    ### ZAD 1
-    # seed = 1234
-    # Random.seed!(seed) #losowe ale zawsze takie same póki jest takie same ziarno
-    # L_x = 2500
-    # L_y = 50
-    # L_z = 3
-    # t = 1.0
-    # W = 0.5
-    # PBC = false
+        ### ZAD 1
+        # seed = 1234
+        # Random.seed!(seed) #losowe ale zawsze takie same póki jest takie same ziarno
+        # L_x = 2500
+        # L_y = 50
+        # L_z = 3
+        # t = 1.0
+        # W = 0.5
+        # PBC = false
 
-    # H1 = gen_H_anderson_1D(L_x, t, W, PBC)
-    # # H2 = gen_H_anderson_2D(L_x, L_y, t, W, PBC)
-    # # H3 = gen_H_anderson_3D(L_x, L_y, L_z, t, W, PBC)
-    # # save_data(H2, "Hamiltonian_2D", W, PBC; seed, L_x, L_y)
+        # H1 = gen_H_anderson_1D(L_x, t, W, PBC)
+        # # H2 = gen_H_anderson_2D(L_x, L_y, t, W, PBC)
+        # # H3 = gen_H_anderson_3D(L_x, L_y, L_z, t, W, PBC)
+        # # save_data(H2, "Hamiltonian_2D", W, PBC; seed, L_x, L_y)
 
-    # ED = eigen(Symmetric(H1))
-    # eigenvalues = ED.values
-    # eigenvectors = ED.vectors
-    # save_data(eigenvalues, "eigenvalues_1D", W, PBC; seed, L_x)
-    # save_data(eigenvectors, "eigenvectors_1D", W, PBC; seed, L_x)
+        # ED = eigen(Symmetric(H1))
+        # eigenvalues = ED.values
+        # eigenvectors = ED.vectors
+        # save_data(eigenvalues, "eigenvalues_1D", W, PBC; seed, L_x)
+        # save_data(eigenvectors, "eigenvectors_1D", W, PBC; seed, L_x)
 
 
 #     ### ZAD 2
@@ -252,78 +281,103 @@ function main()
 #     save_data(IPR_data, "IPR_1D_R$(R)", W, PBC; L_x)
 
     
-    ### ZAD 3
-    L_x = 10
-    L_y = 10
-    L_z = 10
+#     ### ZAD 3
+#     L_x = 10
+#     L_y = 10
+#     L_z = 10
+#     t = 1.0
+#     PBC = true
+#     R = 70
+
+#     W_values = 1.0:0.5:20.0
+#     N_W = length(W_values)
+
+#     N = L_x * L_y * L_z
+#     delta_E = 0.1
+#     E_min = -16.0
+#     E_max = 16.0
+#     N_binow = round(Int, (E_max - E_min) / delta_E)
+
+#     energie_binow = zeros(N_binow)
+#     for i in 1:N_binow
+#         energie_binow[i] = E_min + (i - 0.5) * delta_E
+#     end
+
+#     # Wiersze -> W
+#     # Kolumny -> biny energetyczne
+#     IPR_matrix = fill(NaN, N_W, N_binow)
+#     liczba_stanow_matrix = zeros(Int, N_W, N_binow)
+
+#     rd = RandomDevice()
+
+#     for (w_idx, W) in enumerate(W_values)
+#         eigenvalues_R = zeros(Float64, N, R)
+#         IPR_R = zeros(Float64, N, R)
+#         for r in 1:R
+#             seed = rand(rd, UInt64)
+#             Random.seed!(seed)
+#             H3 = gen_H_anderson_3D(L_x, L_y, L_z, t, W, PBC)
+#             ED = eigen(Symmetric(H3))
+#             eigenvalues = ED.values
+#             eigenvectors = ED.vectors
+
+#             # IPR dla wszystkich wektorów własnych
+#             IPR = vec(sum(abs2.(eigenvectors).^2, dims=1))
+#             eigenvalues_R[:, r] = eigenvalues
+#             IPR_R[:, r] = IPR
+#         end
+
+#         eigenvalues_mean = vec(sum(eigenvalues_R, dims=2)) / R
+#         IPR_mean = vec(sum(IPR_R, dims=2)) / R
+
+#         IPR_suma = zeros(N_binow)
+#         liczba_stanow = zeros(Int, N_binow)
+
+#         for i in eachindex(eigenvalues_mean)
+#             E = eigenvalues_mean[i]
+#             IPR = IPR_mean[i]
+#             numer_binu = floor(Int, (E - E_min) / delta_E) + 1
+#             IPR_suma[numer_binu] += IPR
+#             liczba_stanow[numer_binu] += 1
+#         end
+
+#         for i in 1:N_binow
+#             if liczba_stanow[i] > 0
+#                 IPR_matrix[w_idx, i] = IPR_suma[i] / liczba_stanow[i]
+#             end
+#             liczba_stanow_matrix[w_idx, i] = liczba_stanow[i]
+#         end
+#     end
+
+#     save_data(IPR_matrix, "IPR_matrix_3D_R$(R)", 0, PBC; L_x, L_y, L_z)
+
+    ### zad 5
     t = 1.0
-    PBC = true
-    R = 70
+    E_values = [-3.0,-2.0,-1.0, 0.0, 1.0, 2.0, 3.0]
+    W = 2.0
+    PBC = false
+    R = 100
 
-    W_values = 1.0:0.5:20.0
-    N_W = length(W_values)
+    L_values = vcat(1, 10:10:1000, 1100:100:10000, 11000:1000:1000000)
+    L_max = maximum(L_values)
+    gamma_R = zeros(length(L_values), R)
 
-    N = L_x * L_y * L_z
-    delta_E = 0.1
-    E_min = -16.0
-    E_max = 16.0
-    N_binow = round(Int, (E_max - E_min) / delta_E)
+    for E in E_values
+        gamma_R = zeros(length(L_values), R)
 
-    energie_binow = zeros(N_binow)
-    for i in 1:N_binow
-        energie_binow[i] = E_min + (i - 0.5) * delta_E
-    end
-
-    # Wiersze -> W
-    # Kolumny -> biny energetyczne
-    IPR_matrix = fill(NaN, N_W, N_binow)
-    liczba_stanow_matrix = zeros(Int, N_W, N_binow)
-
-    rd = RandomDevice()
-
-    for (w_idx, W) in enumerate(W_values)
-        eigenvalues_R = zeros(Float64, N, R)
-        IPR_R = zeros(Float64, N, R)
+        # Pętla po realizacjach nieporządku
         for r in 1:R
+            rd = RandomDevice()
             seed = rand(rd, UInt64)
             Random.seed!(seed)
-            H3 = gen_H_anderson_3D(L_x, L_y, L_z, t, W, PBC)
-            ED = eigen(Symmetric(H3))
-            eigenvalues = ED.values
-            eigenvectors = ED.vectors
-
-            # IPR dla wszystkich wektorów własnych
-            IPR = vec(sum(abs2.(eigenvectors).^2, dims=1))
-            eigenvalues_R[:, r] = eigenvalues
-            IPR_R[:, r] = IPR
+            w = gen_pot_Anderson(L_max, W)
+            gamma_R[:, r] = gamma_rekurencja(w, E, t, L_values)
         end
 
-        eigenvalues_mean = vec(sum(eigenvalues_R, dims=2)) / R
-        IPR_mean = vec(sum(IPR_R, dims=2)) / R
-
-        IPR_suma = zeros(N_binow)
-        liczba_stanow = zeros(Int, N_binow)
-
-        for i in eachindex(eigenvalues_mean)
-            E = eigenvalues_mean[i]
-            IPR = IPR_mean[i]
-            numer_binu = floor(Int, (E - E_min) / delta_E) + 1
-            IPR_suma[numer_binu] += IPR
-            liczba_stanow[numer_binu] += 1
-        end
-
-        for i in 1:N_binow
-            if liczba_stanow[i] > 0
-                IPR_matrix[w_idx, i] = IPR_suma[i] / liczba_stanow[i]
-            end
-            liczba_stanow_matrix[w_idx, i] = liczba_stanow[i]
-        end
+        gamma_mean = vec(sum(gamma_R, dims=2)) / R # Uśrednianie po realizacjach
+        gamma_data = hcat(L_values, gamma_mean) # Pierwsza kolumna: L, druga kolumna: gamma
+        save_data(gamma_data, "gamma_1D_E$(E)_R$(R)", W, PBC; L_x=L_max) # Zapis wyników
     end
-
-    save_data(IPR_matrix, "IPR_matrix_3D_R$(R)", 0, PBC; L_x, L_y, L_z)
-
 end
-
-
 
 main()
