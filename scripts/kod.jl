@@ -162,6 +162,27 @@ function gamma_rekurencja(w, E, t, L_values)
     return gamma
 end
 
+# Hamiltoanin model Aubry'ego-Andre 1D jednnocząstkowy
+function gen_H_aubry_andre_1D(L, t, λ, PBC::Bool)
+    N = L
+    H = zeros(Float64, N, N)
+    β = (sqrt(5) - 1) / 2 
+    for i in 1:L
+        H[i, i] = λ * cos(2*π*β*i) # potencjał Aubry'ego-Andre
+
+        if i < L
+            H[i, i + 1] = -t
+            H[i + 1, i] = -t
+        end
+    end
+
+    if PBC == 1 && L > 2
+        H[1, L] = -t
+        H[L, 1] = -t
+    end
+
+    return H
+end
 
 # Zapis do pliku .data
 function save_data(data, filename, W, PBC; seed=nothing, L_x=nothing, L_y=nothing, L_z=nothing)
@@ -351,7 +372,10 @@ function main()
 
 #     save_data(IPR_matrix, "IPR_matrix_3D_R$(R)", 0, PBC; L_x, L_y, L_z)
 
-    # ### zad 5
+
+
+
+    # ### zad 5 od L
     # t = 1.0
     # #E_values = [-3.0,-2.0,-1.0, 0.0, 1.0, 2.0, 3.0]
     # E_values = vcat(-3.0:0.05:3.0)
@@ -382,7 +406,7 @@ function main()
     #     save_data(gamma_data, "gamma_1D_E$(E)_R$(R)", W, PBC; L_x=L_max) # Zapis wyników
     # end 
 
-    # ### zad 5
+    # ### zad 5 od E
     # t = 1.0
     # E_values = -2.0:0.02:2.0
     # W = 5.0
@@ -410,34 +434,64 @@ function main()
     # save_data(gamma_data, "gamma_vs_E_R$(R)", W, PBC; L_x=L_max) 
     
 
-    ### zad 5
+    # ### zad 5 od W 
+    # t = 1.0 
+    # E_values = [0.0, 1.0, 1.5]
+    # W_values = 0.1:0.02:10.0
+    # PBC = false
+    # R = 100
+
+    # L_values = [100000]
+    # L_max = maximum(L_values)
+    # for E in E_values
+    #     gamma_mean_values = zeros(length(W_values))
+    #     for (i, W) in enumerate(W_values)
+    #         gamma_R = zeros(R)
+    #         # Pętla po realizacjach nieporządku
+    #         for r in 1:R
+    #             rd = RandomDevice()
+    #             seed = rand(rd, UInt64)
+    #             Random.seed!(seed)
+    #             w = gen_pot_Anderson(L_max, W)
+    #             gamma_R[r] = gamma_rekurencja(w, E, t, L_values)[1]
+    #         end
+    #         gamma_mean_values[i] = sum(gamma_R) / R # Uśrednianie po realizacjach
+    #         println("W=$W, gamma=$(gamma_mean_values[i])")
+    #     end
+    #     gamma_data = hcat(collect(W_values), gamma_mean_values) # Pierwsza kolumna: W, druga kolumna: średnie gamma
+    #     save_data(gamma_data, "gamma_vs_W_E$(E)_R$(R)", "0.1-10.0", PBC; L_x=L_max)
+    #     end
+
+    ### ZAD 6
+    L_values = [377, 610, 987, 1597, 2584]
     t = 1.0
-    E_values = [0.0, 1.0, 1.5]
-    W_values = 0.1:0.02:10.0
-    PBC = false
-    R = 100
+    λ_values = 0.0:0.1:4.0
+    PBC = true
+    for L_x in L_values
+        println("Aktualnie liczone L=$L_x")
+        IPR_mean = zeros(length(λ_values))
+        sigma_rel = zeros(length(λ_values))
+        # Środkowa część widma: 0.35L-0.65L 
+        indeks_min = ceil(Int, 0.35 * L_x)
+        indeks_max = floor(Int, 0.65 * L_x)
 
-    L_values = [100000]
-    L_max = maximum(L_values)
-    for E in E_values
-        gamma_mean_values = zeros(length(W_values))
-        for (i, W) in enumerate(W_values)
-            gamma_R = zeros(R)
-            # Pętla po realizacjach nieporządku
-            for r in 1:R
-                rd = RandomDevice()
-                seed = rand(rd, UInt64)
-                Random.seed!(seed)
-                w = gen_pot_Anderson(L_max, W)
-                gamma_R[r] = gamma_rekurencja(w, E, t, L_values)[1]
-            end
-            gamma_mean_values[i] = sum(gamma_R) / R # Uśrednianie po realizacjach
-            println("E=$E, W=$W, gamma=$(gamma_mean_values[i])")
-        end
-        gamma_data = hcat(collect(W_values), gamma_mean_values) # Pierwsza kolumna: W, druga kolumna: średnie gamma
-        save_data(gamma_data, "gamma_vs_W_E$(E)_R$(R)", "0.1-10.0", PBC; L_x=L_max)
-        end
+        for (i, λ) in enumerate(λ_values)
+            H_aa = gen_H_aubry_andre_1D(L_x, t, λ, PBC)
+            ED = eigen(Symmetric(H_aa))
+            #eigenvalues = ED.values
+            eigenvectors = ED.vectors
 
-    
+            # IPR dla wszystkich wektorów własnych, każda kolumna macierzy to jeden wektor własny
+            IPR = vec(sum(abs2.(eigenvectors).^2, dims=1)) # dims -> oznacza sumowanie po wierszach, osobno dla każdej kolumny
+            #Liczenie średniej IPR i sigma_rel dla środkowej części widma
+            IPR_srodek = IPR[indeks_min:indeks_max]
+            IPR_mean[i] = sum(IPR_srodek) / length(IPR_srodek)
+            IPR2_mean = sum(IPR_srodek.^2) / length(IPR_srodek)
+            sigma_rel[i] = (IPR2_mean - IPR_mean[i]^2) / IPR_mean[i]^2
+        end
+        IPR_aa_data = hcat(λ_values, IPR_mean, sigma_rel)
+        save_data(IPR_aa_data, "IPR_sigma_rel_AA", "lambda_0.2-4.0", PBC; L_x=L_x)
     end
+
+end
 main()
