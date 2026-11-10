@@ -14,7 +14,7 @@ plik = Path(
 
 # Zakresy osi (None = automatyczny)
 X_MIN = None
-X_MAX = None
+X_MAX = 10**5
 
 Y_MIN = None
 Y_MAX = None

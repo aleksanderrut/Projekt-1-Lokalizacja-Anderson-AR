@@ -351,33 +351,93 @@ function main()
 
 #     save_data(IPR_matrix, "IPR_matrix_3D_R$(R)", 0, PBC; L_x, L_y, L_z)
 
+    # ### zad 5
+    # t = 1.0
+    # #E_values = [-3.0,-2.0,-1.0, 0.0, 1.0, 2.0, 3.0]
+    # E_values = vcat(-3.0:0.05:3.0)
+    # W = 2.0
+    # PBC = false
+    # R = 100
+
+    # #L_values = vcat(1, 10:10:1000, 1100:100:10000, 11000:1000:1000000, 1100000:100000:10000000)
+    # L_values = [100000]
+    # L_max = maximum(L_values)
+    # gamma_R = zeros(length(L_values), R)
+
+    # for E in E_values
+    #     gamma_R = zeros(length(L_values), R)
+
+    #     # Pętla po realizacjach nieporządku
+    #     for r in 1:R
+    #         rd = RandomDevice()
+    #         seed = rand(rd, UInt64)
+    #         Random.seed!(seed)
+    #         w = gen_pot_Anderson(L_max, W) 
+    #         println("w[1] = $(w[1])")#sprawdzałem czy serio loswe
+    #         gamma_R[:, r] = gamma_rekurencja(w, E, t, L_values)
+    #     end
+
+    #     gamma_mean = vec(sum(gamma_R, dims=2)) / R # Uśrednianie po realizacjach
+    #     gamma_data = hcat(L_values, gamma_mean) # Pierwsza kolumna: L, druga kolumna: gamma
+    #     save_data(gamma_data, "gamma_1D_E$(E)_R$(R)", W, PBC; L_x=L_max) # Zapis wyników
+    # end 
+
+    # ### zad 5
+    # t = 1.0
+    # E_values = -2.0:0.02:2.0
+    # W = 5.0
+    # PBC = false
+    # R = 100
+
+    # L_values = [100000]
+    # L_max = maximum(L_values)
+    # gamma_mean_values = zeros(length(E_values))
+    # for (i, E) in enumerate(E_values)
+    #     gamma_R = zeros(R)
+    #     # Pętla po realizacjach nieporządku
+    #     for r in 1:R
+    #         rd = RandomDevice()
+    #         seed = rand(rd, UInt64)
+    #         Random.seed!(seed)
+    #         w = gen_pot_Anderson(L_max, W)
+    #         #println("w[1] = $(w[1])")#sprawdzałem czy serio loswe
+    #         gamma_R[r] = gamma_rekurencja(w, E, t, L_values)[1]
+    #     end
+    #     gamma_mean_values[i] = sum(gamma_R) / R # uśrednianie po realizacjach
+    #     println("E=$E, gamma=$(gamma_mean_values[i])")
+    # end
+    # gamma_data = hcat(collect(E_values), gamma_mean_values) # Pierwsza kolumna: E, druga kolumna: średnie gamma
+    # save_data(gamma_data, "gamma_vs_E_R$(R)", W, PBC; L_x=L_max) 
+    
+
     ### zad 5
     t = 1.0
-    E_values = [-3.0,-2.0,-1.0, 0.0, 1.0, 2.0, 3.0]
-    W = 2.0
+    E_values = [0.0, 1.0, 1.5]
+    W_values = 0.1:0.02:10.0
     PBC = false
     R = 100
 
-    L_values = vcat(1, 10:10:1000, 1100:100:10000, 11000:1000:1000000)
+    L_values = [100000]
     L_max = maximum(L_values)
-    gamma_R = zeros(length(L_values), R)
-
     for E in E_values
-        gamma_R = zeros(length(L_values), R)
-
-        # Pętla po realizacjach nieporządku
-        for r in 1:R
-            rd = RandomDevice()
-            seed = rand(rd, UInt64)
-            Random.seed!(seed)
-            w = gen_pot_Anderson(L_max, W)
-            gamma_R[:, r] = gamma_rekurencja(w, E, t, L_values)
+        gamma_mean_values = zeros(length(W_values))
+        for (i, W) in enumerate(W_values)
+            gamma_R = zeros(R)
+            # Pętla po realizacjach nieporządku
+            for r in 1:R
+                rd = RandomDevice()
+                seed = rand(rd, UInt64)
+                Random.seed!(seed)
+                w = gen_pot_Anderson(L_max, W)
+                gamma_R[r] = gamma_rekurencja(w, E, t, L_values)[1]
+            end
+            gamma_mean_values[i] = sum(gamma_R) / R # Uśrednianie po realizacjach
+            println("E=$E, W=$W, gamma=$(gamma_mean_values[i])")
+        end
+        gamma_data = hcat(collect(W_values), gamma_mean_values) # Pierwsza kolumna: W, druga kolumna: średnie gamma
+        save_data(gamma_data, "gamma_vs_W_E$(E)_R$(R)", "0.1-10.0", PBC; L_x=L_max)
         end
 
-        gamma_mean = vec(sum(gamma_R, dims=2)) / R # Uśrednianie po realizacjach
-        gamma_data = hcat(L_values, gamma_mean) # Pierwsza kolumna: L, druga kolumna: gamma
-        save_data(gamma_data, "gamma_1D_E$(E)_R$(R)", W, PBC; L_x=L_max) # Zapis wyników
+    
     end
-end
-
 main()
