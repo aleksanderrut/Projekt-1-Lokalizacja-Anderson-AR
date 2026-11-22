@@ -18,16 +18,15 @@ tryb = "binned"
 
 # (L_x, W, PBC, R)
 PARAMETRY = [
-    (50,   8.0, True, 500),
-    (100,  8.0, True, 500),
-    (200,  8.0, True, 500),
-    (500,  8.0, True, 500),
-    (1000, 8.0, True, 500),
+    (1000, 1.0, True, 100),
+    (1000, 1.5, True, 100),
+    (1000, 2.0, True, 100),
+    (1000, 5.0, True, 100),
 ]
 
 # Zakres osi
-X_MIN = -6
-X_MAX = 6
+X_MIN = -2
+X_MAX = 2
 
 Y_MIN = None
 Y_MAX = None
@@ -49,15 +48,15 @@ else:
 # WSPÓLNE PARAMETRY DO TYTUŁU
 # =========================
 
-_, W_title, PBC_title, R_title = PARAMETRY[0]
+L_title, _, PBC_title, R_title = PARAMETRY[0]
 
-# Sprawdzenie, czy porównujemy tylko różne rozmiary L_x
+# Sprawdzenie, czy L, PBC i R są takie same
 if any(
-    (W, PBC, R) != (W_title, PBC_title, R_title)
+    (L_x, PBC, R) != (L_title, PBC_title, R_title)
     for L_x, W, PBC, R in PARAMETRY
 ):
     raise ValueError(
-        "Aby wyświetlać W, PBC i R w tytule, "
+        "Aby wyświetlać L, PBC i R w tytule, "
         "muszą być takie same dla wszystkich krzywych."
     )
 
@@ -139,10 +138,18 @@ for L_x, W, PBC, R in PARAMETRY:
     # RYSOWANIE KRZYWEJ
     # =========================
 
-    plt.plot(energia, PR, marker="o", markersize=3, linewidth=1.5, label=f"L = {L_x}")
+    plt.plot(
+        energia,
+        PR,
+        marker="o",
+        markersize=3,
+        linewidth=1.5,
+        label=f"W = {W}"
+    )
 
 # =========================
 # WYGLĄD WYKRESU
+# =========================
 
 plt.xlim(X_MIN, X_MAX)
 plt.ylim(Y_MIN, Y_MAX)
@@ -150,7 +157,11 @@ plt.ylim(Y_MIN, Y_MAX)
 plt.xlabel("Energia E", fontsize=16)
 plt.ylabel(r"$1/\langle IPR\rangle$", fontsize=16)
 
-plt.title(f"Participation Ratio 1D\n" f"W = {W_title}, PBC = {PBC_title}, R = {R_title}", fontsize=18)
+plt.title(
+    f"Participation Ratio 1D\n"
+    f"L = {L_title}, PBC = {PBC_title}, R = {R_title}",
+    fontsize=18
+)
 
 plt.xticks(fontsize=14)
 plt.yticks(fontsize=14)
@@ -161,11 +172,14 @@ plt.tight_layout()
 
 # =========================
 # ZAPIS
+# =========================
 
 script_folder = Path(__file__).resolve().parent
 plot_name = "fig3.png"
 plot_path = script_folder / plot_name
+
 plt.savefig(plot_path, dpi=300)
+
 print("Wykres zapisany do:")
 print(plot_path)
 

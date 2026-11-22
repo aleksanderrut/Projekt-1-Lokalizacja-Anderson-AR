@@ -1,28 +1,31 @@
+
 from pathlib import Path
 import re
 import numpy as np
 import matplotlib.pyplot as plt
-
+from matplotlib.ticker import FuncFormatter
 
 # ============================================================
 # PARAMETRY
 # ============================================================
 
 plik = Path(
-    r"C:\Users\aleks\Desktop\PWR\Kwantowe układy wielu cząstek z elementami kwantowej fizyki statystycznej\Projekt 1 Lokalizacja Andersona\data\IPR_matrix_3D_R70_W0_PBCtrue_Lx10_Ly10_Lz10.data"
+    r"C:\Users\aleks\Desktop\PWR\Kwantowe układy wielu cząstek z elementami kwantowej fizyki statystycznej\Projekt 1 Lokalizacja Andersona\data\IPR_matrix_3D_R100_W0_PBCtrue_Lx10_Ly10_Lz10.data"
 )
 
 # Zakresy osi (None = automatyczny)
 X_MIN = None
-X_MAX = 10**5
+X_MAX = None
 
 Y_MIN = None
 Y_MAX = None
 
-# Zakres skali kolorów (None = automatyczny)
-VMIN = None
-VMAX = None
+# Zakres skali kolorów
+VMIN = -3.0
+VMAX = -0.5
 
+# Skala kolorystyczna
+CMAP = "inferno"
 
 # ============================================================
 # ODCZYT PARAMETRÓW Z NAZWY PLIKU
@@ -45,7 +48,6 @@ print("Lx:", Lx)
 print("Ly:", Ly)
 print("Lz:", Lz)
 
-
 # ============================================================
 # WCZYTANIE MACIERZY IPR
 # ============================================================
@@ -56,7 +58,6 @@ N_W, N_binow = IPR_matrix.shape
 
 print("Rozmiar macierzy:", IPR_matrix.shape)
 
-
 # ============================================================
 # OŚ W I OŚ ENERGII
 # ============================================================
@@ -64,18 +65,24 @@ print("Rozmiar macierzy:", IPR_matrix.shape)
 # Parametry zgodne z kodem Julii
 W_min = 1.0
 W_max = 20.0
-delta_W = 0.5
+delta_W = 0.2
 
 E_min = -16.0
 E_max = 16.0
 
 # Wartości W odpowiadające kolejnym wierszom
-W_values = np.arange(W_min, W_max + delta_W / 2, delta_W)
+W_values = np.arange(
+    W_min,
+    W_max + delta_W / 2,
+    delta_W
+)
 
 # Środki binów energetycznych
 delta_E = (E_max - E_min) / N_binow
 
-energie = E_min + (np.arange(N_binow) + 0.5) * delta_E
+energie = E_min + (
+    np.arange(N_binow) + 0.5
+) * delta_E
 
 if len(W_values) != N_W:
     raise ValueError(
@@ -83,23 +90,37 @@ if len(W_values) != N_W:
         f"nie zgadza się z liczbą wierszy macierzy ({N_W})."
     )
 
-
 # ============================================================
 # PRZYGOTOWANIE HEATMAPY
 # ============================================================
 
-# Logarytm dziesiętny IPR
-IPR_plot = np.ma.masked_where(
-    ~np.isfinite(IPR_matrix) | (IPR_matrix <= 0),
-    IPR_matrix
-)
+# Pominięcie NaN, inf i wartości niedodatnich
+maska = ~np.isfinite(IPR_matrix) | (IPR_matrix <= 0)
 
-IPR_plot = np.ma.log10(IPR_plot)
+print("Liczba NaN:", np.isnan(IPR_matrix).sum())
+print("Liczba inf:", np.isinf(IPR_matrix).sum())
+print("Liczba pomijanych punktów:", maska.sum())
 
-# Kopia mapy kolorów - NaN na biało
-cmap = plt.get_cmap("viridis").copy()
+IPR_clean = IPR_matrix.copy()
+IPR_clean[maska] = np.nan
+
+# Logarytm dziesiętny
+with np.errstate(divide="ignore", invalid="ignore"):
+    IPR_log = np.log10(IPR_clean)
+
+IPR_plot = np.ma.masked_invalid(IPR_log)
+
+if IPR_plot.count() == 0:
+    raise ValueError(
+        "Brak poprawnych wartości IPR do narysowania."
+    )
+
+print("Minimum log10(IPR):", float(IPR_plot.min()))
+print("Maksimum log10(IPR):", float(IPR_plot.max()))
+
+# Mapa kolorów inferno
+cmap = plt.get_cmap(CMAP).copy()
 cmap.set_bad(color="white")
-
 
 # ============================================================
 # WYKRES
@@ -131,20 +152,37 @@ ax.set_ylabel("Nieporządek W", fontsize=16)
 
 ax.set_title(
     f"Participation Ratio {dimension}\n"
-    f" {Lx} x {Ly} x {Lz}, "
+    f"{Lx} x {Ly} x {Lz}, "
     f"PBC = {PBC}, R = {R}",
     fontsize=17
 )
 
 ax.tick_params(axis="both", labelsize=13)
 
-# Colorbar
+# ============================================================
+# COLORBAR
+# ============================================================
+
 cbar = fig.colorbar(im, ax=ax)
-cbar.set_label(r"$\log_{10}(\langle IPR\rangle)$", fontsize=15)
+
+cbar.set_label(
+    r"$\log_{10}(\langle IPR\rangle)$",
+    fontsize=15
+)
+
+# Podpisy od -3 do -0.5, co 0.5
+ticks = np.arange(-3.0, -0.49, 0.5)
+
+cbar.set_ticks(ticks)
+
+# Bez niepotrzebnych miejsc po przecinku
+cbar.ax.yaxis.set_major_formatter(
+    FuncFormatter(lambda x, pos: f"{x:g}")
+)
+
 cbar.ax.tick_params(labelsize=12)
 
 plt.tight_layout()
-
 
 # ============================================================
 # ZAPIS
@@ -156,7 +194,11 @@ folder_wykresy.mkdir(parents=True, exist_ok=True)
 plot_name = f"Heatmap_{nazwa}.png"
 plot_path = folder_wykresy / plot_name
 
-plt.savefig(plot_path, dpi=300)
+plt.savefig(
+    plot_path,
+    dpi=300,
+    bbox_inches="tight"
+)
 
 print("Wykres zapisany do:")
 print(plot_path)
