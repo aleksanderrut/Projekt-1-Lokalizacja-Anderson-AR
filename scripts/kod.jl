@@ -231,7 +231,6 @@ function main()
         # save_data(eigenvalues, "eigenvalues_1D", W, PBC; seed, L_x)
         # save_data(eigenvectors, "eigenvectors_1D", W, PBC; seed, L_x)
 
-
     ### ZAD 2
     L_x = 1000
     t = 1.0
